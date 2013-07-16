@@ -49,6 +49,14 @@ package {
 			return true;
 		}
 		
+		public function clear():void {
+			this.numBG.dispose();
+			this.numBG.base.dispose();
+			
+			this.blurNumImg.dispose();
+			this.blurNumImg.base.dispose();
+		}
+		
 		public function hideBG():void {
 			this.numBG.visible = false;
 		}

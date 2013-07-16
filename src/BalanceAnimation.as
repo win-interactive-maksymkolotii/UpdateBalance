@@ -8,6 +8,7 @@ package {
 	import starling.display.Image;
 	import starling.display.Quad;
 	import starling.display.Sprite;
+	import starling.events.Event;
 	import starling.extensions.pixelmask.PixelMaskDisplayObject;
 	import starling.text.TextField;
 	import starling.textures.Texture;
@@ -21,32 +22,26 @@ package {
 		private static const CoinClass:Class;
 		
 		private const START_BALANCE:String = "123,456,013";
-		private const FINISH_BALANCE:String = "16,232,245,523";
+		private const FINISH_BALANCE:String = "3,523";
 		
-		private var effArr:Array = [];
 		private var balance:TextField;
-
 		private var balanceString:String;
-		private var blurTexture:Texture; 
-
 		private var balanceLength:int;
-
-		private var charXPos:int;
-
-		private var charYPos:int;
-
-		private var blurYPos:int;
-
-		private var maskedObj:PixelMaskDisplayObject;
-
-		private var blurContainer:Sprite;
-
-		private var charDowncount:int;
-
-		private var coinContainer:Sprite;
-
-		private var coinImg:Image;
 		
+		private var maskedObj:PixelMaskDisplayObject;
+		private var blurContainer:Sprite;
+		private var blurNumArr:Array = [];
+		private var blurTexture:Texture;
+		
+		private var charXPos:int;
+		private var charYPos:int;
+		private var blurYPos:int;
+		private var charDowncount:int;
+		
+		private var coinContainer:Sprite;
+		private var coinTexture:Texture;
+		private var coinImg:Image;
+
 		public function BalanceAnimation() {
 			var balanceContainer:Sprite = new Sprite();
 			balance = new TextField(200, 25, START_BALANCE, "Calibri", 19, 0xffffff, true);
@@ -66,11 +61,27 @@ package {
 			setTimeout(startEff, 2000);
 		}
 		
+		public function clear():void {
+			this.blurTexture.dispose();
+			this.blurTexture.base.dispose();
+			
+			for (var i:int = 0; i < this.blurNumArr.length; i++) {
+				this.maskedObj.removeChild(this.blurNumArr[i]);
+				this.blurNumArr[i].clear();
+				this.blurNumArr[i].dispose;
+			}
+			
+			this.removeChild(this.maskedObj);
+			this.maskedObj.dispose();
+			
+			this.addChild(this.coinContainer);
+		}
+		
 		private function addCoin():void {
 			this.coinContainer = new Sprite();
 			
-			var texture:Texture = Texture.fromBitmap(new CoinClass());
-			this.coinImg = new Image(texture);
+			this.coinTexture = Texture.fromBitmap(new CoinClass());
+			this.coinImg = new Image(this.coinTexture);
 			
 			updateCoinPosition();
 			
@@ -112,13 +123,15 @@ package {
 			addBlurChar();
 			removeCoinAnim();
 			
-			setTimeout(tweenProgress, 1);
+			this.addEventListener(Event.ENTER_FRAME, tweenProgress);
 		}
 		
 		private function removeCoinAnim():void {
 			var tween:Tween = new Tween(this.coinContainer, .3, Transitions.EASE_IN_BACK);
 			tween.animate("scaleX", 0);
 			tween.animate("scaleY", 0);
+			tween.animate("rotation", -2 * Math.PI);
+			
 			Starling.juggler.add(tween);
 		}
 		
@@ -139,7 +152,7 @@ package {
 			effBalanceNum.x = this.charXPos;
 			
 			maskedObj.addChild(effBalanceNum);
-			this.effArr.push(effBalanceNum);
+			this.blurNumArr.push(effBalanceNum);
 			
 			charYPos += blurTexture.height * (1 / balanceLength);
 			
@@ -147,7 +160,6 @@ package {
 				setTimeout(addBlurChar, 30);
 			} else {
 				balance.text = "" + FINISH_BALANCE;
-				addCoinAnim();
 			}
 		}
 		
@@ -165,18 +177,21 @@ package {
 			return result;
 		}
 		
-		private function tweenProgress():void {
+		private function tweenProgress(e:Event):void {
 			var left:int = 0;
-			for (var i:int = 0; i < this.effArr.length; i++) {
-				var balanceNum:BalanceNum = this.effArr[i] as BalanceNum;
+			for (var i:int = 0; i < this.blurNumArr.length; i++) {
+				var balanceNum:BalanceNum = this.blurNumArr[i] as BalanceNum;
 				
 				if (balanceNum.updateAnim(3)) {
 					left++;
 				}
 			}
 			
-			if (left) {
-				setTimeout(tweenProgress, 1);
+			if (left == 0) {
+				this.removeEventListener(Event.ENTER_FRAME, tweenProgress);
+				clear();
+				
+				addCoinAnim();
 			}
 		}
 	}
