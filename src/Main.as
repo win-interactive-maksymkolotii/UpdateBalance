@@ -5,6 +5,7 @@ package {
 	import starling.display.Sprite;
 	import starling.events.TouchEvent;
 	import starling.events.TouchPhase;
+	import starling.text.TextField;
 	import starling.textures.Texture;
 	
 	public class Main extends Sprite {
@@ -18,8 +19,11 @@ package {
 		private var balanceAnimation:BalanceAnimation;
 		
 		public function Main() {
-			this.balanceAnimation = new BalanceAnimation(START_BALANCE);
-			this.balanceAnimation.x = this.balanceAnimation.y = 100;
+			var balance:TextField = new TextField(200, 25, START_BALANCE, "Calibri", 19, 0xffffff, true);
+			balance.hAlign = "right";
+			
+			this.balanceAnimation = new BalanceAnimation(balance, START_BALANCE);
+			this.balanceAnimation.x = this.balanceAnimation.y = 250;
 			this.addChild(balanceAnimation);
 			
 			var coin:Image = new Image(Texture.fromBitmap(new CoinClass()));
@@ -30,7 +34,9 @@ package {
 		
 		private function onTouch(e:TouchEvent):void {
 			if (e.touches[0].phase == TouchPhase.ENDED) {
-				FINISH_BALANCE = "" + int(Math.random() * 10000000000);
+				var text:String = "" + uint(Math.random() * 1000000);
+				text = text.replace( /\d{1,3}(?=(\d{3})+(?!\d))/g , "$&'");
+				FINISH_BALANCE = text; 
 				this.balanceAnimation.showAnimation(FINISH_BALANCE);
 //				this.removeChild(this.balanceAnimation);
 				

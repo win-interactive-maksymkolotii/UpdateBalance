@@ -19,45 +19,42 @@ package {
 		[Embed(source="../assets/blurNums.png"), mimeType="image/png")]
 		private static const NumClass:Class;
 		
+		private var balanceField:TextField;// main textfield
+		private var checkChar:TextField;// textfield for char width checking
+		
 		private var startBalance:String;
-		private var finishBalance:String;
-		
-		private var isAnimated:Boolean;
-		
-		private var balance:TextField;
+		private var finishBalance:String;  
 		private var balanceString:String;
 		private var balanceLength:int;
 		
-		private var checkChar:TextField;
+		private var isAnimated:Boolean;
 		
 		private var maskedObj:PixelMaskDisplayObject;
+		private var mask:Quad;
+		
 		private var blurContainer:Sprite;
-		private var blurNumArr:Vector.<BalanceNum>;
+		private var blurNumArr:Vector.<BlurChar>;
 		private var blurTexture:Texture;
 		private var addBlurCharTimer:int;
 		
 		private var charXPos:int;
-		private var charYPos:int;
 		private var blurYPos:int;
+		private var blurStartYPos:int;// 
 		private var charDowncount:int;
 		
 		private var coinContainer:Sprite;
 		private var coinImg:Image;
 
-		private var mask:Quad;
-
-		public function BalanceAnimation(startBalance:String) {
+		public function BalanceAnimation(balance:TextField, startBalance:String) {
 			this.startBalance = startBalance;
+			this.balanceField = balance;
 			
 			var balanceContainer:Sprite = new Sprite();
-			balance = new TextField(200, 25, startBalance, "Calibri", 19, 0xffffff, true);
-			checkChar = new TextField(200, 25, startBalance, "Calibri", 19, 0xffffff, true);
-			balance.hAlign = "right";
 			balanceContainer.addChild(balance);
-			
-			this.blurNumArr = new Vector.<BalanceNum>();
-			
 			this.addChild(balanceContainer);
+			
+			checkChar = new TextField(200, 25, startBalance, "Calibri", 19, 0xffffff, true);
+			this.blurNumArr = new Vector.<BlurChar>();
 		}
 		
 		public function addCoin(coin:Image):void {
@@ -77,68 +74,57 @@ package {
 			}
 			
 			this.finishBalance = finishBalance;
+			
+			selectBiggestString();
+			
+			craeteBlurTexture();
+			createMaskObject();
+			createBlurContainer();
+			
+			setStartValues();
+			addBlurChar();
+			hideCoinAnim();
+			
+			this.isAnimated = true;
+			this.addEventListener(Event.ENTER_FRAME, tweenProgress);
+		}
+		
+		private function selectBiggestString():void {
 			if (this.startBalance.length > this.finishBalance.length) {
 				this.balanceString = startBalance;
 			} else {
 				this.balanceString = finishBalance;
 			}
-			
-			this.blurContainer = new Sprite();
-			
+		}
+
+		private function craeteBlurTexture():void {
+			this.blurTexture = Texture.fromBitmap(new NumClass());
+		}
+		
+		private function createMaskObject():void {
 			this.maskedObj = new PixelMaskDisplayObject();
 			this.maskedObj.y = 6;
-			this.mask = new Quad(200, 15, 0xff0000, false);
+			this.mask = new Quad(this.balanceField.width, 15, 0xff0000, false);
 			this.maskedObj.mask = this.mask;
-			
-			this.blurTexture = Texture.fromBitmap(new NumClass());
-			
+		}
+		
+		private function createBlurContainer():void {
+			this.blurContainer = new Sprite();
 			this.blurContainer.addChild(maskedObj);
-			this.addChild(this.blurContainer);
-			
+			this.addChild(this.blurContainer);			
+		}
+		
+		private function setStartValues():void {
 			this.balanceLength = this.balanceString.length;
 			
 			this.charDowncount = this.balanceLength - 1;
-			this.charXPos = this.balance.bounds.width - 3;
+			this.charXPos = this.balanceField.bounds.width - 3;
 			
-			this.charYPos = this.blurYPos = -1 * blurTexture.height + 20;
-			
-			addBlurChar();
-			hideCoinAnim();
-			
-			this.addEventListener(Event.ENTER_FRAME, tweenProgress);
-			
-			this.isAnimated = true;
-		}
-		
-		public function clear():void {
-			this.blurTexture.dispose();
-			this.blurTexture.base.dispose();
-			
-			for (var i:int = 0; i < this.blurNumArr.length; i++) {
-				this.maskedObj.removeChild(this.blurNumArr[i]);
-				this.blurNumArr[i].clear();
-				this.blurNumArr[i].dispose;
-			}
-			
-			this.removeChild(this.maskedObj);
-			
-			while (this.maskedObj.numChildren) {
-				this.maskedObj.removeChildAt(0).dispose();
-			}
-			
-			this.checkChar.dispose();
-			
-			this.maskedObj.mask = null;
-			this.maskedObj.dispose();
-			
-			this.blurContainer.dispose();
-			
-			clearTimeout(this.addBlurCharTimer);
-			this.removeEventListener(Event.ENTER_FRAME, tweenProgress);
+			this.blurYPos = this.blurStartYPos = -1 * blurTexture.height + 20;
 		}
 		
 		private function updateCoinPosition():void {
-			var xPos:int = this.balance.width - this.balance.textBounds.width;
+			var xPos:int = this.balanceField.width - this.balanceField.textBounds.width;
 			this.coinContainer.x = xPos - coinImg.width - 10;
 			this.coinContainer.y = 0;
 			
@@ -170,19 +156,19 @@ package {
 			var currentCharWidth:int = getWidth(this.balanceString.charAt(this.charDowncount));
 			this.charXPos -= currentCharWidth;
 			
-			var effBalanceNum:BalanceNum = new BalanceNum(this.blurTexture, currentCharWidth, this.blurYPos, this.charYPos);
+			var effBalanceNum:BlurChar = new BlurChar(this.blurTexture, currentCharWidth, this.blurStartYPos, this.blurYPos);
 			effBalanceNum.x = this.charXPos;
 			
 			maskedObj.addChild(effBalanceNum);
 			this.blurNumArr.push(effBalanceNum);
 			
-			charYPos += blurTexture.height * (1 / balanceLength);
+			blurYPos += blurTexture.height * (1 / balanceLength);
 			
 			if (this.charDowncount--) {
 				this.addBlurCharTimer = setTimeout(addBlurChar, 30);
 			} else {
 				this.startBalance = this.finishBalance;
-				balance.text = "" + finishBalance;
+				balanceField.text = "" + finishBalance;
 			}
 		}
 		
@@ -191,23 +177,50 @@ package {
 			return this.checkChar.textBounds.width;
 		}
 		
-		private function tweenProgress(e:Event):void {
-			var left:int = 0;
+		private function clear():void {
+			this.blurTexture.dispose();
+			this.blurTexture.base.dispose();
+			
 			for (var i:int = 0; i < this.blurNumArr.length; i++) {
-				var balanceNum:BalanceNum = this.blurNumArr[i] as BalanceNum;
+				this.maskedObj.removeChild(this.blurNumArr[i]);
+				this.blurNumArr[i].clear();
+				this.blurNumArr[i].dispose;
+			}
+			
+			this.removeChild(this.maskedObj);
+			
+			while (this.maskedObj.numChildren) {
+				this.maskedObj.removeChildAt(0).dispose();
+			}
+			
+			this.checkChar.dispose();
+			
+			this.maskedObj.mask = null;
+			this.maskedObj.dispose();
+			
+			this.blurContainer.dispose();
+			this.removeChild(this.blurContainer);
+			
+			clearTimeout(this.addBlurCharTimer);
+			this.removeEventListener(Event.ENTER_FRAME, tweenProgress);
+		}
+		
+		private function tweenProgress(e:Event):void {
+			var updateCount:int = 0;
+			for (var i:int = 0; i < this.blurNumArr.length; i++) {
+				var balanceNum:BlurChar = this.blurNumArr[i] as BlurChar;
 				
 				if (balanceNum.updateAnim(3)) {
-					left++;
+					updateCount++;
 				}
 			}
 			
-			if (left == 0) {
+			if (updateCount == 0) {
+				this.isAnimated = false;
 				this.removeEventListener(Event.ENTER_FRAME, tweenProgress);
-				clear();
 				
 				showCoinAnim();
-				
-				this.isAnimated = false;
+				clear();
 			}
 		}
 	}
