@@ -49,9 +49,11 @@ package {
 		}
 		
 		public function clear():void {
+			this.removeChild(this.numBG);
 			this.numBG.dispose();
 			this.numBG.base.dispose();
 			
+			this.removeChild(this.blurNumImg);
 			this.blurNumImg.dispose();
 			this.blurNumImg.base.dispose();
 		}

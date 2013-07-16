@@ -1,6 +1,6 @@
 package {
 	
-	import flash.geom.Rectangle;
+	import flash.utils.clearTimeout;
 	import flash.utils.setTimeout;
 	
 	import starling.animation.Transitions;
@@ -19,11 +19,10 @@ package {
 		[Embed(source="../assets/blurNums.png"), mimeType="image/png")]
 		private static const NumClass:Class;
 		
-		[Embed(source="../assets/stardustCoin.png")]
-		private static const CoinClass:Class;
+		private var startBalance:String;
+		private var finishBalance:String;
 		
-		private const START_BALANCE:String = "12,456,013";
-		private const FINISH_BALANCE:String = "312,456,013";
+		private var isAnimated:Boolean;
 		
 		private var balance:TextField;
 		private var balanceString:String;
@@ -33,8 +32,9 @@ package {
 		
 		private var maskedObj:PixelMaskDisplayObject;
 		private var blurContainer:Sprite;
-		private var blurNumArr:Array = [];
+		private var blurNumArr:Vector.<BalanceNum>;
 		private var blurTexture:Texture;
+		private var addBlurCharTimer:int;
 		
 		private var charXPos:int;
 		private var charYPos:int;
@@ -42,27 +42,72 @@ package {
 		private var charDowncount:int;
 		
 		private var coinContainer:Sprite;
-		private var coinTexture:Texture;
 		private var coinImg:Image;
 
-		public function BalanceAnimation() {
+		private var mask:Quad;
+
+		public function BalanceAnimation(startBalance:String) {
+			this.startBalance = startBalance;
+			
 			var balanceContainer:Sprite = new Sprite();
-			balance = new TextField(200, 25, START_BALANCE, "Calibri", 19, 0xffffff, true);
-			checkChar = new TextField(200, 25, START_BALANCE, "Calibri", 19, 0xffffff, true);
+			balance = new TextField(200, 25, startBalance, "Calibri", 19, 0xffffff, true);
+			checkChar = new TextField(200, 25, startBalance, "Calibri", 19, 0xffffff, true);
 			balance.hAlign = "right";
 			balanceContainer.addChild(balance);
 			
-			addCoin();
-			
-			if (START_BALANCE.length > FINISH_BALANCE.length) {
-				this.balanceString = START_BALANCE;
-			} else {
-				this.balanceString = FINISH_BALANCE;
-			}
+			this.blurNumArr = new Vector.<BalanceNum>();
 			
 			this.addChild(balanceContainer);
+		}
+		
+		public function addCoin(coin:Image):void {
+			this.coinContainer = new Sprite();
 			
-			setTimeout(startEff, 1000);
+			this.coinImg = coin;
+			
+			updateCoinPosition();
+			
+			this.coinContainer.addChild(this.coinImg);
+			this.addChild(this.coinContainer);
+		}
+		
+		public function showAnimation(finishBalance:String):void {
+			if (this.isAnimated) {
+				clear();
+			}
+			
+			this.finishBalance = finishBalance;
+			if (this.startBalance.length > this.finishBalance.length) {
+				this.balanceString = startBalance;
+			} else {
+				this.balanceString = finishBalance;
+			}
+			
+			this.blurContainer = new Sprite();
+			
+			this.maskedObj = new PixelMaskDisplayObject();
+			this.maskedObj.y = 6;
+			this.mask = new Quad(200, 15, 0xff0000, false);
+			this.maskedObj.mask = this.mask;
+			
+			this.blurTexture = Texture.fromBitmap(new NumClass());
+			
+			this.blurContainer.addChild(maskedObj);
+			this.addChild(this.blurContainer);
+			
+			this.balanceLength = this.balanceString.length;
+			
+			this.charDowncount = this.balanceLength - 1;
+			this.charXPos = this.balance.bounds.width - 3;
+			
+			this.charYPos = this.blurYPos = -1 * blurTexture.height + 20;
+			
+			addBlurChar();
+			hideCoinAnim();
+			
+			this.addEventListener(Event.ENTER_FRAME, tweenProgress);
+			
+			this.isAnimated = true;
 		}
 		
 		public function clear():void {
@@ -81,19 +126,15 @@ package {
 				this.maskedObj.removeChildAt(0).dispose();
 			}
 			
-			this.addChild(this.coinContainer);
-		}
-		
-		private function addCoin():void {
-			this.coinContainer = new Sprite();
+			this.checkChar.dispose();
 			
-			this.coinTexture = Texture.fromBitmap(new CoinClass());
-			this.coinImg = new Image(this.coinTexture);
+			this.maskedObj.mask = null;
+			this.maskedObj.dispose();
 			
-			updateCoinPosition();
+			this.blurContainer.dispose();
 			
-			this.coinContainer.addChild(this.coinImg);
-			this.addChild(this.coinContainer);
+			clearTimeout(this.addBlurCharTimer);
+			this.removeEventListener(Event.ENTER_FRAME, tweenProgress);
 		}
 		
 		private function updateCoinPosition():void {
@@ -107,33 +148,7 @@ package {
 			this.coinContainer.y += this.coinImg.height >> 1;
 		}
 		
-		private function startEff():void {
-			this.blurContainer = new Sprite();
-			
-			this.maskedObj = new PixelMaskDisplayObject();
-			this.maskedObj.y = 6;
-			var mask:Quad = new Quad(200, 15, 0xff0000, false);
-			this.maskedObj.mask = mask;
-			
-			this.blurTexture = Texture.fromBitmap(new NumClass());
-			
-			this.blurContainer.addChild(maskedObj);
-			this.addChild(this.blurContainer);
-			
-			this.balanceLength = this.balanceString.length;
-			
-			this.charDowncount = this.balanceLength - 1;
-			this.charXPos = this.balance.bounds.width - 3;
-			
-			this.charYPos = this.blurYPos = -1 * blurTexture.height + 20;
-			
-			addBlurChar();
-			removeCoinAnim();
-			
-			this.addEventListener(Event.ENTER_FRAME, tweenProgress);
-		}
-		
-		private function removeCoinAnim():void {
+		private function hideCoinAnim():void {
 			var tween:Tween = new Tween(this.coinContainer, .3, Transitions.EASE_IN_BACK);
 			tween.animate("scaleX", 0);
 			tween.animate("scaleY", 0);
@@ -142,7 +157,7 @@ package {
 			Starling.juggler.add(tween);
 		}
 		
-		private function addCoinAnim():void {
+		private function showCoinAnim():void {
 			updateCoinPosition();
 			
 			var tween:Tween = new Tween(this.coinContainer, .3, Transitions.EASE_OUT_BACK);
@@ -155,7 +170,7 @@ package {
 			var currentCharWidth:int = getWidth(this.balanceString.charAt(this.charDowncount));
 			this.charXPos -= currentCharWidth;
 			
-			var effBalanceNum:BalanceNum = new BalanceNum(blurTexture, currentCharWidth, blurYPos, this.charYPos);
+			var effBalanceNum:BalanceNum = new BalanceNum(this.blurTexture, currentCharWidth, this.blurYPos, this.charYPos);
 			effBalanceNum.x = this.charXPos;
 			
 			maskedObj.addChild(effBalanceNum);
@@ -164,9 +179,10 @@ package {
 			charYPos += blurTexture.height * (1 / balanceLength);
 			
 			if (this.charDowncount--) {
-				setTimeout(addBlurChar, 30);
+				this.addBlurCharTimer = setTimeout(addBlurChar, 30);
 			} else {
-				balance.text = "" + FINISH_BALANCE;
+				this.startBalance = this.finishBalance;
+				balance.text = "" + finishBalance;
 			}
 		}
 		
@@ -189,7 +205,9 @@ package {
 				this.removeEventListener(Event.ENTER_FRAME, tweenProgress);
 				clear();
 				
-				addCoinAnim();
+				showCoinAnim();
+				
+				this.isAnimated = false;
 			}
 		}
 	}
