@@ -19,7 +19,7 @@ package {
 		
 		private function onTouch(e:TouchEvent):void {
 			if (e.touches[0].phase == TouchPhase.ENDED) {
-//				this.removeChild(this.balanceAnimation);
+				this.removeChild(this.balanceAnimation);
 				
 				this.balanceAnimation = new BalanceAnimation();
 				this.balanceAnimation.x = e.touches[0].globalX;

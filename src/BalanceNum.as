@@ -25,7 +25,6 @@ package {
 			this.blurNumImg.y = yPos;
 			
 			numBG = new Quad(charWidth, 25, 0x000000, true);
-			this.numBG.x = blurNumImg.x;
 			
 			this.addChild(this.numBG);
 			this.addChild(this.blurNumImg);
@@ -34,7 +33,7 @@ package {
 		public function updateAnim(delY:int):Boolean {
 			this.blurNumImg.y += delY;
 			this.totalAnim += delY;
-			
+
 			if (this.blurNumImg.y > 10) {
 				this.blurNumImg.y = startYPos;
 			}

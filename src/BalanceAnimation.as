@@ -1,5 +1,6 @@
 package {
 	
+	import flash.geom.Rectangle;
 	import flash.utils.setTimeout;
 	
 	import starling.animation.Transitions;
@@ -21,12 +22,14 @@ package {
 		[Embed(source="../assets/stardustCoin.png")]
 		private static const CoinClass:Class;
 		
-		private const START_BALANCE:String = "123,456,013";
-		private const FINISH_BALANCE:String = "3,523";
+		private const START_BALANCE:String = "12,456,013";
+		private const FINISH_BALANCE:String = "312,456,013";
 		
 		private var balance:TextField;
 		private var balanceString:String;
 		private var balanceLength:int;
+		
+		private var checkChar:TextField;
 		
 		private var maskedObj:PixelMaskDisplayObject;
 		private var blurContainer:Sprite;
@@ -45,6 +48,7 @@ package {
 		public function BalanceAnimation() {
 			var balanceContainer:Sprite = new Sprite();
 			balance = new TextField(200, 25, START_BALANCE, "Calibri", 19, 0xffffff, true);
+			checkChar = new TextField(200, 25, START_BALANCE, "Calibri", 19, 0xffffff, true);
 			balance.hAlign = "right";
 			balanceContainer.addChild(balance);
 			
@@ -58,7 +62,7 @@ package {
 			
 			this.addChild(balanceContainer);
 			
-			setTimeout(startEff, 2000);
+			setTimeout(startEff, 1000);
 		}
 		
 		public function clear():void {
@@ -72,7 +76,10 @@ package {
 			}
 			
 			this.removeChild(this.maskedObj);
-			this.maskedObj.dispose();
+			
+			while (this.maskedObj.numChildren) {
+				this.maskedObj.removeChildAt(0).dispose();
+			}
 			
 			this.addChild(this.coinContainer);
 		}
@@ -115,10 +122,10 @@ package {
 			
 			this.balanceLength = this.balanceString.length;
 			
-			this.charDowncount = this.balanceLength;
-			this.charXPos = this.balance.bounds.width;
-			this.charYPos = -1 * blurTexture.height + 20;
-			this.blurYPos = -1 * blurTexture.height + 20;
+			this.charDowncount = this.balanceLength - 1;
+			this.charXPos = this.balance.bounds.width - 3;
+			
+			this.charYPos = this.blurYPos = -1 * blurTexture.height + 20;
 			
 			addBlurChar();
 			removeCoinAnim();
@@ -156,7 +163,7 @@ package {
 			
 			charYPos += blurTexture.height * (1 / balanceLength);
 			
-			if (--this.charDowncount) {
+			if (this.charDowncount--) {
 				setTimeout(addBlurChar, 30);
 			} else {
 				balance.text = "" + FINISH_BALANCE;
@@ -164,17 +171,8 @@ package {
 		}
 		
 		private function getWidth(char:String):int {
-			var result:int = 10;
-			
-			if (char == "3") {
-				result = 9;
-			} else if (char == "4") {
-				result = 11;
-			} else if (char == ",") {
-				result = 6;
-			}
-			
-			return result;
+			this.checkChar.text = char;
+			return this.checkChar.textBounds.width;
 		}
 		
 		private function tweenProgress(e:Event):void {
